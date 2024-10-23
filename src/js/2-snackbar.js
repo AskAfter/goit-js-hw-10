@@ -7,45 +7,46 @@ const submitButton = document.querySelector('button');
 const inputNumber = document.querySelector('input[name="delay"]');
 const form = document.querySelector('.form');
 
-const resetToDefault = () => {
-  inputNumber.value = '';
-  fulfilledRadio.checked = false;
-  rejectedRadio.checked = false;
-};
-
-let delay = 0;
-inputNumber.addEventListener('input', event => {
-  delay = Number(event.target.value);
-});
-
-const makePromise = delay => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (fulfilledRadio.checked) {
-        resolve(delay);
-      } else if (rejectedRadio.checked) {
-        reject(delay);
-      }
-    }, delay);
-  });
-};
+// let delay = 0;
+// inputNumber.addEventListener('input', event => {
+//   delay = Number(event.target.value);
+// });
 
 form.addEventListener('submit', event => {
   event.preventDefault();
 
-  makePromise(delay)
-    .then(delay => {
-      iziToast.success({
-        title: 'OK',
-        message: `Fulfilled promise in ${delay}ms`,
-      });
-    })
-    .catch(delay => {
-      iziToast.error({
-        title: 'Error',
-        message: `Rejected promise in ${delay}ms`,
-      });
+  const delay = Number(inputNumber.value);
+  const isFulfilled = fulfilledRadio.checked;
+
+  const createPromise = delay => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        if (isFulfilled) {
+          resolve(`Fulfilled promise in ${delay}ms`);
+        } else {
+          reject(`Rejected promise in ${delay}ms`);
+        }
+      }, delay);
     });
+  };
+
+  Promise.allSettled([createPromise(delay)]).then(results => {
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        iziToast.success({
+          title: 'OK',
+          message: result.value,
+        });
+      } else if (result.status === 'rejected') {
+        iziToast.error({
+          title: 'Error',
+          message: result.reason,
+        });
+      }
+    });
+  });
+
+  form.reset();
 });
 
 iziToast.settings({
